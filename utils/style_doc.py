@@ -266,12 +266,7 @@ class CodeStyler:
 
                     if self.is_special_block(paragraph[0]):
                         # Maybe we are starting a special block.
-                        if len(paragraph) > 1:
-                            # If we have the interior of the block in the paragraph, we grab the indent.
-                            self.current_indent = get_indent(paragraph[1])
-                        else:
-                            # We will determine the indent with the next paragraph
-                            self.current_indent = None
+                        self.current_indent = get_indent(paragraph[1]) if len(paragraph) > 1 else None
                     styled_paragraph = self.style_paragraph(
                         paragraph, max_len, no_style=no_style, min_indent=min_indent
                     )
@@ -401,10 +396,12 @@ def _add_new_lines_before_doc_special_words(text):
     new_lines = []
     for idx, line in enumerate(lines):
         # Detect if the line is the start of a new list.
-        if _re_any_doc_special_word.search(line) is not None:
-            # If the line before is non empty, add an extra new line.
-            if idx > 0 and len(lines[idx - 1]) != 0:
-                new_lines.append("")
+        if (
+            _re_any_doc_special_word.search(line) is not None
+            and idx > 0
+            and len(lines[idx - 1]) != 0
+        ):
+            new_lines.append("")
         new_lines.append(line)
     return "\n".join(new_lines)
 

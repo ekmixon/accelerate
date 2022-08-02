@@ -89,8 +89,7 @@ def training_function(config, args):
 
     # Build the label correspondences
     all_labels = [extract_label(fname) for fname in file_names]
-    id_to_label = list(set(all_labels))
-    id_to_label.sort()
+    id_to_label = sorted(set(all_labels))
     label_to_id = {lbl: i for i, lbl in enumerate(id_to_label)}
 
     # Set the seed before splitting the data.
@@ -153,7 +152,7 @@ def training_function(config, args):
     # Now we train the model
     for epoch in range(num_epochs):
         model.train()
-        for step, batch in enumerate(train_dataloader):
+        for batch in train_dataloader:
             # We could avoid this line since we set the accelerator with `device_placement=True`.
             batch = {k: v.to(accelerator.device) for k, v in batch.items()}
             inputs = (batch["image"] - mean) / std
@@ -167,7 +166,7 @@ def training_function(config, args):
         model.eval()
         accurate = 0
         num_elems = 0
-        for step, batch in enumerate(eval_dataloader):
+        for batch in eval_dataloader:
             # We could avoid this line since we set the accelerator with `device_placement=True`.
             batch = {k: v.to(accelerator.device) for k, v in batch.items()}
             inputs = (batch["image"] - mean) / std

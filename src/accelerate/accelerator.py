@@ -185,11 +185,11 @@ class Accelerator:
 
     @property
     def use_fp16(self):
-        if self.distributed_type == DistributedType.DEEPSPEED:
-            use_fp16 = self.state.deepspeed_plugin.deepspeed_config["fp16"]["enabled"]
-        else:
-            use_fp16 = self.state.use_fp16
-        return use_fp16
+        return (
+            self.state.deepspeed_plugin.deepspeed_config["fp16"]["enabled"]
+            if self.distributed_type == DistributedType.DEEPSPEED
+            else self.state.use_fp16
+        )
 
     @contextmanager
     def local_main_process_first(self):
@@ -311,7 +311,7 @@ class Accelerator:
         self.deepspeed_config = deepspeed_plugin.deepspeed_config
 
         batch_sizes = [obj.batch_size for obj in args if hasattr(obj, "batch_size")]
-        if len(batch_sizes) == 0:
+        if not batch_sizes:
             raise ValueError(
                 "You must specify a training or evaluation dataloader in `accelerate.prepare()` when using DeepSpeed."
             )
@@ -522,7 +522,7 @@ class Accelerator:
         for obj in args:
             if isinstance(obj, torch.nn.Module):
                 obj = extract_model_from_parallel(obj)
-                named_parameters.update({n: p for n, p in obj.named_parameters()})
+                named_parameters |= dict(obj.named_parameters())
         return named_parameters
 
     def _get_devices(self, *args):
@@ -544,9 +544,12 @@ class Accelerator:
 
     def get_state_dict(self, model):
         is_zero_3 = False
-        if is_deepspeed_available():
-            if isinstance(model, DeepSpeedEngineWrapper) and self.distributed_type == DistributedType.DEEPSPEED:
-                is_zero_3 = self.state.deepspeed_plugin.zero_stage == 3
+        if (
+            is_deepspeed_available()
+            and isinstance(model, DeepSpeedEngineWrapper)
+            and self.distributed_type == DistributedType.DEEPSPEED
+        ):
+            is_zero_3 = self.state.deepspeed_plugin.zero_stage == 3
 
         if is_zero_3:
             state_dict = model._zero3_consolidated_fp16_state_dict()
@@ -580,7 +583,4 @@ class Accelerator:
         Whether or not the optimizer update was skipped (because of gradient overflow in mixed precision), in which
         case the learning rate should not be changed.
         """
-        for optimizer in self._optimizers:
-            if optimizer.is_overflow:
-                return True
-        return False
+        return any(optimizer.is_overflow for optimizer in self._optimizers)

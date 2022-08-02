@@ -54,13 +54,12 @@ def get_cluster_input():
 
     deepspeed_config = None
     if distributed_type in [DistributedType.MULTI_GPU, DistributedType.NO]:
-        use_deepspeed = _ask_field(
+        if use_deepspeed := _ask_field(
             "Do you want to use DeepSpeed? [yes/NO]: ",
             _convert_yes_no_to_bool,
             default=False,
             error_message="Please enter yes or no.",
-        )
-        if use_deepspeed:
+        ):
             distributed_type = DistributedType.DEEPSPEED
             assert (
                 is_deepspeed_available()

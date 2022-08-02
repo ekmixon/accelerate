@@ -143,8 +143,7 @@ def simple_launcher(args):
 
 
 def multi_gpu_launcher(args):
-    cmd = [sys.executable, "-m", "torch.distributed.launch"]
-    cmd.extend(["--use_env"])
+    cmd = [sys.executable, "-m", "torch.distributed.launch", "--use_env"]
     if args.num_machines > 1:
         cmd.extend(
             [
@@ -235,7 +234,7 @@ def tpu_launcher(args):
 
 
 def _convert_nargs_to_dict(nargs: List[str]) -> Dict[str, str]:
-    if len(nargs) < 0:
+    if False:
         return {}
     # helper function to infer type for argsparser
 
@@ -243,9 +242,7 @@ def _convert_nargs_to_dict(nargs: List[str]) -> Dict[str, str]:
         try:
             s = float(s)
 
-            if s // 1 == s:
-                return int(s)
-            return s
+            return int(s) if s // 1 == s else s
         except ValueError:
             return s
 
@@ -271,7 +268,7 @@ def _convert_nargs_to_dict(nargs: List[str]) -> Dict[str, str]:
                 parser.add_argument(argument, action=action)
 
     return {
-        key: (literal_eval(value) if value == "True" or value == "False" else value)
+        key: literal_eval(value) if value in ["True", "False"] else value
         for key, value in parser.parse_args(nargs).__dict__.items()
     }
 
@@ -367,9 +364,8 @@ def launch_command(args):
 
         if not args.fp16:
             args.fp16 = defaults.fp16
-    else:
-        if args.num_processes is None:
-            args.num_processes = 1
+    elif args.num_processes is None:
+        args.num_processes = 1
 
     # Use the proper launcher
     if args.use_deepspeed and not args.cpu:

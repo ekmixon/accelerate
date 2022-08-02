@@ -206,12 +206,15 @@ class AcceleratorState:
                 os.environ["LOCAL_RANK"] = str(local_rank)
                 if not os.environ.get("MASTER_PORT", None):
                     os.environ["MASTER_PORT"] = "29500"
-                if not os.environ.get("MASTER_ADDR", None):
-                    if local_size != size and backend != "mpi":
-                        raise ValueError(
-                            "Looks like distributed multinode run but MASTER_ADDR env not set, "
-                            "please try exporting rank 0's hostname as MASTER_ADDR"
-                        )
+                if (
+                    not os.environ.get("MASTER_ADDR", None)
+                    and local_size != size
+                    and backend != "mpi"
+                ):
+                    raise ValueError(
+                        "Looks like distributed multinode run but MASTER_ADDR env not set, "
+                        "please try exporting rank 0's hostname as MASTER_ADDR"
+                    )
                 if not torch.distributed.is_initialized():
                     torch.distributed.init_process_group(backend, rank=rank, world_size=size)
                     self.backend = backend
@@ -230,14 +233,8 @@ class AcceleratorState:
 
     def __repr__(self):
         use_fp16 = self.deepspeed_plugin.fp16 if self.distributed_type == DistributedType.DEEPSPEED else self.use_fp16
-        repr = (
-            f"Distributed environment: {self.distributed_type}{('  Backend: ' + self.backend) if self.backend else ''}\n"
-            f"Num processes: {self.num_processes}\n"
-            f"Process index: {self.process_index}\n"
-            f"Local process index: {self.local_process_index}\n"
-            f"Device: {self.device}\n"
-            f"Use FP16 precision: {use_fp16}\n"
-        )
+        repr = f"Distributed environment: {self.distributed_type}{f'  Backend: {self.backend}' if self.backend else ''}\nNum processes: {self.num_processes}\nProcess index: {self.process_index}\nLocal process index: {self.local_process_index}\nDevice: {self.device}\nUse FP16 precision: {use_fp16}\n"
+
         if self.distributed_type == DistributedType.DEEPSPEED:
             repr += f"ds_config: {self.deepspeed_plugin.ds_config}\n"
         return repr

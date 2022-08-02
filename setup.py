@@ -15,25 +15,20 @@
 from setuptools import setup
 from setuptools import find_packages
 
-extras = {}
-extras["quality"] = ["black == 21.4b0", "isort >= 5.5.4", "flake8 >= 3.8.3"]
-extras["docs"] = [
-    "docutils==0.16.0",
-    "recommonmark",
-    "sphinx==3.2.1",
-    "sphinx-markdown-tables",
-    "sphinx-rtd-theme==0.4.3",
-    "sphinx-copybutton",
-    "sphinxext-opengraph==0.4.1",
-]
-extras["test"] = [
-    "pytest",
-    "pytest-xdist",
-]
-
-extras["sagemaker"] = [
-    "sagemaker",  # boto3 is a required package in sagemaker
-]
+extras = {
+    "quality": ["black == 21.4b0", "isort >= 5.5.4", "flake8 >= 3.8.3"],
+    "docs": [
+        "docutils==0.16.0",
+        "recommonmark",
+        "sphinx==3.2.1",
+        "sphinx-markdown-tables",
+        "sphinx-rtd-theme==0.4.3",
+        "sphinx-copybutton",
+        "sphinxext-opengraph==0.4.1",
+    ],
+    "test": ["pytest", "pytest-xdist"],
+    "sagemaker": ["sagemaker"],
+}
 
 setup(
     name="accelerate",

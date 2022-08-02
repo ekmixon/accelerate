@@ -31,11 +31,11 @@ def get_user_input():
         _convert_compute_environment,
         error_message="Please enter 0 or 1",
     )
-    if compute_environment == ComputeEnvironment.AMAZON_SAGEMAKER:
-        config = get_sagemaker_input()
-    else:
-        config = get_cluster_input()
-    return config
+    return (
+        get_sagemaker_input()
+        if compute_environment == ComputeEnvironment.AMAZON_SAGEMAKER
+        else get_cluster_input()
+    )
 
 
 def config_command_parser(subparsers=None):

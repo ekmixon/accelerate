@@ -129,16 +129,11 @@ def get_sagemaker_input():
     # using the best two instances for single-gpu training or multi-gpu -> can turn into question to make it more diverse
     ec2_instance_type = "ml.p3.2xlarge" if distributed_type == SageMakerDistributedType.NO else "ml.p3dn.24xlarge"
     num_machines = 1
-    if (
-        distributed_type == SageMakerDistributedType.DATA_PARALLEL
-        or distributed_type == SageMakerDistributedType.MODEL_PARALLEL
-    ):
+    if distributed_type in [
+        SageMakerDistributedType.DATA_PARALLEL,
+        SageMakerDistributedType.MODEL_PARALLEL,
+    ]:
         raise NotImplementedError("Model or Data Parallelism is not implemented yet. We are working on it")
-        num_machines = _ask_field(
-            "How many machines do you want use? [2]: ",
-            lambda x: int(x),
-            default=2,
-        )
     fp16 = _ask_field(
         "Do you wish to use FP16 (mixed precision)? [yes/NO]: ",
         _convert_yes_no_to_bool,

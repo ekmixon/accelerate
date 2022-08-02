@@ -523,11 +523,11 @@ def wait_for_everyone():
 
         Make sure all processes will reach this instruction otherwise one of your processes will hang forever.
     """
-    if (
-        AcceleratorState().distributed_type == DistributedType.MULTI_GPU
-        or AcceleratorState().distributed_type == DistributedType.MULTI_CPU
-        or AcceleratorState().distributed_type == DistributedType.DEEPSPEED
-    ):
+    if AcceleratorState().distributed_type in [
+        DistributedType.MULTI_GPU,
+        DistributedType.MULTI_CPU,
+        DistributedType.DEEPSPEED,
+    ]:
         torch.distributed.barrier()
     elif AcceleratorState().distributed_type == DistributedType.TPU:
         xm.rendezvous("accelerate.utils.wait_for_everyone")
@@ -563,7 +563,10 @@ class PrepareForLaunch:
         self.distributed_type = DistributedType(distributed_type)
 
     def __call__(self, index, *args):
-        if self.distributed_type == DistributedType.MULTI_GPU or self.distributed_type == DistributedType.MULTI_CPU:
+        if self.distributed_type in [
+            DistributedType.MULTI_GPU,
+            DistributedType.MULTI_CPU,
+        ]:
             # Prepare the environment for torch.distributed
             os.environ["LOCAL_RANK"] = str(index)
             os.environ["RANK"] = str(index)

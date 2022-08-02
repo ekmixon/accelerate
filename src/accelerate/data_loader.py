@@ -62,7 +62,7 @@ _PYTORCH_DATALOADER_ADDITIONAL_KWARGS = {
 
 for v, additional_kwargs in _PYTORCH_DATALOADER_ADDITIONAL_KWARGS.items():
     if version.parse(torch.__version__) >= version.parse(v):
-        _PYTORCH_DATALOADER_KWARGS.update(additional_kwargs)
+        _PYTORCH_DATALOADER_KWARGS |= additional_kwargs
 
 
 class BatchSamplerShard(BatchSampler):
@@ -345,9 +345,7 @@ class DataLoaderDispatcher(DataLoader):
                     else:
                         # num_processes batches of the main iterator are concatenated then dispatched and split.
                         # We add the batches one by one so we have the remainder available when drop_last=False.
-                        batches = []
-                        for _ in range(state.num_processes):
-                            batches.append(next(main_iterator))
+                        batches = [next(main_iterator) for _ in range(state.num_processes)]
                         batch = concatenate(batches, dim=0)
                     # In both cases, we need to get the structure of the batch that we will broadcast on other
                     # processes to initialize the tensors with the right shape.
@@ -362,19 +360,17 @@ class DataLoaderDispatcher(DataLoader):
             broadcast_object_list(batch_info)
             stop_iteration = batch_info[1]
             if stop_iteration:
-                # If drop_last is False and split_batches is False, we may have a remainder to take care of.
-                if not self.split_batches and not self.drop_last:
-                    if state.process_index == 0 and len(batches) > 0:
-                        batch = concatenate(batches, dim=0)
-                        batch_info = [get_data_structure(batch), False]
-                    else:
-                        batch_info = [None, True]
-                    broadcast_object_list(batch_info)
-                    if batch_info[1]:
-                        continue
-                else:
+                if self.split_batches or self.drop_last:
                     continue
 
+                if state.process_index == 0 and len(batches) > 0:
+                    batch = concatenate(batches, dim=0)
+                    batch_info = [get_data_structure(batch), False]
+                else:
+                    batch_info = [None, True]
+                broadcast_object_list(batch_info)
+                if batch_info[1]:
+                    continue
             if state.process_index != 0:
                 # Initialize tensors on other processes than process 0.
                 batch = initialize_tensors(batch_info[0])
@@ -462,7 +458,12 @@ def prepare_data_loader(
         This does not support :obj:`BatchSampler` with varying batch size yet.
     """
     if dispatch_batches is None:
-        dispatch_batches = False if not put_on_device else isinstance(dataloader.dataset, IterableDataset)
+        dispatch_batches = (
+            isinstance(dataloader.dataset, IterableDataset)
+            if put_on_device
+            else False
+        )
+
 
     if dispatch_batches and not put_on_device:
         raise ValueError("Using `dispatch_batches=True` requires `put_on_device=True`.")
@@ -482,7 +483,12 @@ def prepare_data_loader(
 
     new_dataset = dataloader.dataset
     # Iterable dataset doesn't like batch_sampler, but data_loader creates a default one for it
-    new_batch_sampler = dataloader.batch_sampler if not isinstance(new_dataset, IterableDataset) else None
+    new_batch_sampler = (
+        None
+        if isinstance(new_dataset, IterableDataset)
+        else dataloader.batch_sampler
+    )
+
     generator = getattr(dataloader, "generator", None)
     # No change if no multiprocess
     if num_processes != 1 and not dispatch_batches:

@@ -27,30 +27,29 @@ def are_the_same_tensors(tensor):
     tensor = tensor[None].clone().to(state.device)
     tensors = gather(tensor).cpu()
     tensor = tensor[0].cpu()
-    for i in range(tensors.shape[0]):
-        if not torch.equal(tensors[i], tensor):
-            return False
-    return True
+    return all(torch.equal(tensors[i], tensor) for i in range(tensors.shape[0]))
 
 
 def require_cuda(test_case):
     """
     Decorator marking a test that requires CUDA. These tests are skipped when there are no GPU available.
     """
-    if not torch.cuda.is_available():
-        return unittest.skip("test requires a GPU")(test_case)
-    else:
-        return test_case
+    return (
+        test_case
+        if torch.cuda.is_available()
+        else unittest.skip("test requires a GPU")(test_case)
+    )
 
 
 def require_tpu(test_case):
     """
     Decorator marking a test that requires TPUs. These tests are skipped when there are no TPUs available.
     """
-    if not is_tpu_available():
-        return unittest.skip("test requires TPU")(test_case)
-    else:
-        return test_case
+    return (
+        test_case
+        if is_tpu_available()
+        else unittest.skip("test requires TPU")(test_case)
+    )
 
 
 def require_multi_gpu(test_case):
